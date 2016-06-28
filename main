@@ -1,0 +1,15 @@
+import twython
+
+TWITTER_APP_KEY = 'qTKw0poOLOB11DktsOUsiJ8az' 
+TWITTER_APP_KEY_SECRET = 'WdPwhaQu9bQAI7PL7F6GBzBM9H4GanYceoGGdqhae8GO6J28mC' 
+TWITTER_ACCESS_TOKEN = '742426785212665857-jpggGy9wStoFJ2i8jCWpHUjQ0aofEwz'
+TWITTER_ACCESS_TOKEN_SECRET = 'DcMhKkYtNIjqZKsbIz7aVoVHDLLK9DdR5VMkoCVbUDxCS'
+
+t = twython.Twython(app_key=TWITTER_APP_KEY,app_secret=TWITTER_APP_KEY_SECRET, oauth_token=TWITTER_ACCESS_TOKEN, oauth_token_secret=TWITTER_ACCESS_TOKEN_SECRET)
+
+search = t.search(q='#airports',count=100)
+
+tweets = search['statuses']
+
+for tweet in tweets:
+    print tweet['id_str'], '\n', tweet['text'], '\n\n\n'
