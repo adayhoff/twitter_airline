@@ -1,15 +1,22 @@
-import twython
+import tweepy 
 
 TWITTER_APP_KEY = 'qTKw0poOLOB11DktsOUsiJ8az' 
 TWITTER_APP_KEY_SECRET = 'WdPwhaQu9bQAI7PL7F6GBzBM9H4GanYceoGGdqhae8GO6J28mC' 
 TWITTER_ACCESS_TOKEN = '742426785212665857-jpggGy9wStoFJ2i8jCWpHUjQ0aofEwz'
 TWITTER_ACCESS_TOKEN_SECRET = 'DcMhKkYtNIjqZKsbIz7aVoVHDLLK9DdR5VMkoCVbUDxCS'
 
-t = twython.Twython(app_key=TWITTER_APP_KEY,app_secret=TWITTER_APP_KEY_SECRET, oauth_token=TWITTER_ACCESS_TOKEN, oauth_token_secret=TWITTER_ACCESS_TOKEN_SECRET)
+auth = tweepy.OAuthHandler(TWITTER_APP_KEY, TWITTER_APP_KEY_SECRET)
+auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+api = tweepy.API(auth)
 
-search = t.search(q='#airports',count=100)
+tweets = tweepy.Cursor(api.search, q='#airport').items(20)
 
-tweets = search['statuses']
+all_items=[]
+[all_items.append(i) for i in tweets]
 
-for tweet in tweets:
-    print tweet['id_str'], '\n', tweet['text'], '\n\n\n'
+for i in all_items:
+    try:
+        if i.entities['media'][0]['type']=='photo':
+            print i.created_at, i.text, i.entities['media'][0]['media_url_https'], "\n"
+    except:
+        pass
