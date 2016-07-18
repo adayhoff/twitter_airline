@@ -1,0 +1,60 @@
+import tweepy 
+
+TWITTER_APP_KEY = 'qTKw0poOLOB11DktsOUsiJ8az' 
+TWITTER_APP_KEY_SECRET = 'WdPwhaQu9bQAI7PL7F6GBzBM9H4GanYceoGGdqhae8GO6J28mC' 
+TWITTER_ACCESS_TOKEN = '742426785212665857-jpggGy9wStoFJ2i8jCWpHUjQ0aofEwz'
+TWITTER_ACCESS_TOKEN_SECRET = 'DcMhKkYtNIjqZKsbIz7aVoVHDLLK9DdR5VMkoCVbUDxCS'
+
+auth = tweepy.OAuthHandler(TWITTER_APP_KEY, TWITTER_APP_KEY_SECRET)
+auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+api = tweepy.API(auth)
+
+
+#g = likely ; y = moderately likely ; r = not likely
+list_of_terms = [['airport','g'], ['airline','g'], ['flight','y'], ['terminal','y'], ['delay','y'], ['plane','y'], 
+                 ['arrive','y'], ['depart','y'], ['board','y'], ['land','y'], ['layover','y'], ['luggage','y'], 
+                 ['airplane','y'], ['gate','y'], ['check','y'], ['TSA','y'], ['security','y'], ['baggage', 'r'], 
+                 ['customs','r'], ['passport','r'], ['runway','r'], ['vacation','r'], ['travel','r']]
+
+def filt (tweets, new_tweets):
+    for i in tweets:
+        try:
+            if i.entities['media'][0]['type']=='photo':   #check if photo
+                if i._json['user']['followers_count'] < 10000:  #check number of followers
+                    if (not i.text.startswith('RT')) and (not i.text.startswith('#RT')) and (not i.text.endswith('RT')): #eliminate retweets
+                        #print i.text         #THIS WORKS
+                        new_tweets.append(i)
+        except:
+            pass
+    return new_tweets
+
+def score_calc(i, score):
+    if list_of_terms[i][1] == 'g':
+        score += 3
+    elif list_of_terms[i][1] == 'y':
+        score += 2
+    elif list_of_terms[i][1] == 'r':
+        score += 1
+    return score
+
+def check (tweets, i, score):
+    score += score_calc(i, score)
+    for j in range (0, len(tweets)):
+        for k in range (i+1, 22):
+            if list_of_terms[k][0] in new_tweets[j].text: 
+                score += score_calc(k, score)
+    print score
+    print tweets[j].created_at, tweets[j]._json['user']['screen_name'], tweets[j].text, tweets[j].entities['media'][0]['media_url_https'], "\n"
+    if score >= 8:
+        print tweets[j].created_at, tweets[j]._json['user']['screen_name'], tweets[j].text, tweets[j].entities['media'][0]['media_url_https'], "\n"
+
+                
+###MAIN###
+for i in range (0, 16):
+    query = list_of_terms[i][0] #GOOD
+    tweets = api.search(q=query, count=100) #GOOD
+    filt_tweets = []
+    score = 0
+    new_tweets = filt(tweets, filt_tweets) #GOOD
+    #print new_tweets[0].text  #WORKS, BUT TEST WITH FOR LOOP FOR ALL ELEMENTS OF LIST
+    check(new_tweets, i, score)    
