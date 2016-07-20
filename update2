@@ -1,0 +1,74 @@
+import tweepy
+import pandas as pd
+import numpy as np
+import csv
+
+### GET AUTHORIZATION ###
+TWITTER_APP_KEY = 'qTKw0poOLOB11DktsOUsiJ8az'
+TWITTER_APP_KEY_SECRET = 'WdPwhaQu9bQAI7PL7F6GBzBM9H4GanYceoGGdqhae8GO6J28mC'
+TWITTER_ACCESS_TOKEN = '742426785212665857-jpggGy9wStoFJ2i8jCWpHUjQ0aofEwz'
+TWITTER_ACCESS_TOKEN_SECRET = 'DcMhKkYtNIjqZKsbIz7aVoVHDLLK9DdR5VMkoCVbUDxCS'
+
+auth = tweepy.OAuthHandler(TWITTER_APP_KEY, TWITTER_APP_KEY_SECRET)
+auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+api = tweepy.API(auth)
+
+### DEFINE DATA FRAME ###
+data = {'term': ['airport', 'airline', 'flight', 'back home', 'time', 'up', 'here', 'fly', 'wait', 'head',
+                 'bound', 'terminal', 'delay', 'plane', 'arrive', 'depart', 'board', 'land', 'layover', 'luggage',
+                 'airplane', 'gate', 'check', 'TSA', 'security', 'baggage', 'customs', 'passport', 'runway', 'vacation',
+                 'travel'],
+        'rating': [3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1],
+        'score': [[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],
+                  [0],[0],[0],[0],[0],[0]]}
+
+list_of_terms = pd.DataFrame(data, columns=['term', 'rating', 'score'])
+
+### GET AIRPORT CODES ###
+airports = pd.read_csv('airportcodes.txt')
+city = airports['City']
+state_code = airports['State Code']
+state = airports['State']
+air_code = airports['Airport Code']
+
+### FUNCTIONS ###
+def filt(tweets, new_tweets):
+    for i in tweets:
+        try:
+            #check if photo, number of followers, eliminate retweets
+            if (i.entities['media'][0]['type']=='photo' and i._json['user']['followers_count'] < 10000 and
+               (not i.text.startswith('RT')) and (not i.text.startswith('#RT')) and (not i.text.endswith('RT'))):
+                new_tweets.append(i)
+        except:
+            pass
+    return new_tweets
+
+def check(tweets, i, j):
+    for h in tweets: #for every tweet for the particular query
+        for k in range(1,31): #for every term in list_of_terms
+            if list_of_terms['term'][k] in h.text: #if the term is in the text of the tweet
+                list_of_terms['score'][i][j] += list_of_terms['rating'][k]
+        if list_of_terms['score'][i][j] >= 7:
+            print list_of_terms['score'][i][j]
+            print (tweets[i].created_at, tweets[i]._json['user']['screen_name'], tweets[i].text,
+               tweets[i].entities['media'][0]['media_url_https'], "\n")
+        list_of_terms['score'][i].append(list_of_terms['rating'][i])
+        j += 1
+
+### MAIN ###
+for i in range (0, city.size):
+    query = city[i]
+    tweets = api.search(q=query, count=100)
+    filt_tweets = []
+    new_tweets = filt(tweets, filt_tweets)
+    for j in new_tweets:
+        if ((state[i] in j.text) or (state_code[i] in j.text)) and (air_code[i] in j.text):
+            print j.created_at, j._json['user']['screen_name'], j.text, j.entities['media'][0]['media_url_https'], "\n"
+
+for i in range (0, 25):
+    j = 0
+    query = list_of_terms['term'][i]
+    tweets = api.search(q=query, count=100)
+    filt_tweets = []
+    new_tweets = filt(tweets, filt_tweets)
+    check(new_tweets, i, j)
