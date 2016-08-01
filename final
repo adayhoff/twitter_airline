@@ -1,0 +1,83 @@
+import tweepy
+import pandas as pd
+import time
+
+### GET AUTHORIZATION ###
+consumer_key = ''
+consumer_secret = ''
+access_token = ''
+access_token_secret = ''
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth)
+
+### DEFINE DATA FRAME ###
+data = {'term': ['airport', 'airline', 'flight', '\\xe2\\x9c\\x88', 'back home', ' time', ' up ', ' here ', ' fly', ' wait', ' head',
+                 'bound', 'terminal', 'delay', 'plane', 'arrive', 'depart', 'board', ' land', 'layover', 'luggage',
+                 'airplane', ' gate', ' check', 'TSA', 'security', 'baggage', 'customs', 'passport', 'runway',
+                 'vacation', 'travel'],
+        'rating': [3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1],
+        'score': [[3],[3],[3],[3],[3],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[2],[1],
+                  [1],[1],[1],[1],[1],[1]]}
+list_of_terms = pd.DataFrame(data, columns=['term', 'rating', 'score'])
+
+### GET AIRPORT CODES ###
+data = pd.read_csv('airportcodes.txt', sep=',', header=None)
+data.columns = ['City','State Code','State','Airport Code','Account']
+city = data['City']
+state_code = data['State Code']
+state = data['State']
+air_code = data['Airport Code']
+account = data['Account']
+
+### FUNCTIONS ###
+def filt(status):
+    try:
+        #check if photo, number of followers, eliminate retweets
+        if status.entities['media'][0]['type']=='photo':
+            if status._json['user']['followers_count'] < 10000:
+                if ((not status.text.startswith('RT')) and (not status.text.startswith('#RT')) and (not status.text.endswith('RT'))):
+                    new_tweets.append(status)
+    except:
+        pass
+    return new_tweets
+def check(tweets, i, j):
+    for h in tweets: #for every tweet for the particular query
+        for k in range(i+1,31): #for every term in list_of_terms
+            if list_of_terms['term'][k] in h.text: #if the term is in the text of the tweet
+                print h
+                print list_of_terms['term'][k]
+                list_of_terms['score'][i][j] += list_of_terms['rating'][k]
+                print list_of_terms['score'][i][j]
+                print list_of_terms['score'][i]
+        #if list_of_terms['score'][i][j] >= 7:
+            #print (tweets[i].created_at, tweets[i]._json['user']['screen_name'], tweets[i].text, tweets[i].entities['media'][0]['media_url_https'], "\n")
+        list_of_terms['score'][i].append(list_of_terms['rating'][i])
+        j += 1
+
+### MAIN ###
+for i in range (0, air_code.size):
+    try:
+        query = air_code[i]
+        new_tweets = []
+        for status in tweepy.Cursor(api.search, q=query).items(100):
+            if air_code[i] in status.text:
+                new_tweets = filt(status)
+        for j in new_tweets:
+           if ((state[i] in j.text) or (state_code[i] in j.text)) and (city[i] in j.text) or (str(account[i]) in j.text):
+              print j.created_at, j._json['user']['screen_name'], j.text, j.entities['media'][0]['media_url_https']
+    except tweepy.error.TweepError:
+        print 'Waiting...'
+        time.sleep(15 * 60)  # 15 minutes
+for i in range (0, 25):
+    try:
+        j = 0
+        query = list_of_terms['term'][i]
+        #Search is rate limited at 180 queries per 15 minute window
+        new_tweets = []
+        for status in tweepy.Cursor(api.search, q=query).items(100):
+            filt_tweets = filt(status)
+        check(filt_tweets, i, j)
+    except tweepy.error.TweepError:
+        print 'Waiting...'
+        time.sleep(15*60) #15 minutes
